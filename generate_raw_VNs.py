@@ -18,7 +18,7 @@ from spacy.symbols import nsubj, VERB, NOUN
     #raw.append(i)
 
 raw = list()
-path = '*.txt'   
+path = 'corpus/*.txt'   
 files = glob.glob(path)
 #print files
 for name in files: 

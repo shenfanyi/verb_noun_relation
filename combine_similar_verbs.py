@@ -5,6 +5,13 @@
 import pandas as pd
 from gensim.models.word2vec import Word2Vec
 
+
+
+### read and handle raw data, incluing upper to lower and string handling of the nouns list
+### handled data to be used later:
+### 1, data_pd(2 columns:verbs(single string), nouns(list of string))
+### 2, all_verbs_dic(key: verbs, values: index(number, begin at 0))
+
 data_pd = pd.read_csv('lib_final.csv')
 
 def lower_str(stri):
@@ -17,8 +24,7 @@ def handle_str(stri):
         j = i.lower().strip()
         res.append(j)
     return res
-
-print handle_str(data_pd.iloc[-1,1][1:-1])
+#print handle_str(data_pd.iloc[-1,1][1:-1])
 
 data_pd.iloc[:,1] = data_pd.iloc[:,1].apply(handle_str)
 data_pd.iloc[:,0] = data_pd.iloc[:,0].apply(lower_str) 
@@ -30,13 +36,18 @@ all_verbs_dic = dict(zip(all_verbs_pd.index, all_verbs_pd.iloc[:,0]))
 #print all_verbs_dic
 #print all_verbs_dic.values
 
-cons_verbs_dic = {}
-cutted_verbs_dic = {}
-added_verbs_dic = {}
+
+
+###handle verbs: combine the same verb of different types,including seperate and compare 
+###lists: a list of lists, each of which contains different types of a verb
+###lists_drop_dup: select the unique ones in lists
+
+###seperate
+cons_verbs_dic = {} ### remain the same
+cutted_verbs_dic = {} ### remove 'ing', 'ed', 's'
+added_verbs_dic = {} ### add 'e', cut 'e' based on cutted_verbs_dic
 
 for (word,index) in all_verbs_dic.items():
-    #print word[-3:] == 'ing',index
-    #break
     if word[-3:] == 'ing':
         cutted_verb = word[:-3]
         cutted_verbs_dic[cutted_verb] = index
@@ -62,6 +73,7 @@ for (word,index) in all_verbs_dic.items():
 #print len(added_verbs_dic)
 
 
+###compare and combine
 lists = list()
 list_index = list()
 for i in all_verbs_dic:
@@ -78,23 +90,24 @@ for i in all_verbs_dic:
                 li.append(added_verbs_dic[m])
                 list_index.append(added_verbs_dic[m])
                 lists.append(li)
-print len(lists)
+#print len(lists)
 #print list_index
 
-lists_drop_dup = []
-for i in lists:
-    if i not in lists_drop_dup:
-        lists_drop_dup.append(i)
-print len(lists_drop_dup)
 
-def remove_stops(li):
-    res = []
-    stop_words = ['@','who', 'what', 'how', 'why', 'where', 'when']
+###select the unique
+def list_drop_dup(li):
+    lists_drop_dup = []
     for i in li:
-        if i not in stop_words:
-            res.append(i)
-    return res
+        if i not in lists_drop_dup:
+            lists_drop_dup.append(i)
+    return lists_drop_dup
+lists_drop_dup = list_drop_dup(lists)
+#print len(lists_drop_dup)
 
+
+
+###use the list of clusters of verbs as index, combine the related nouns  
+###vn_pd: including 2 columns(list of verbs, list of nouns)
 
 rows = []
 for i in lists_drop_dup:
@@ -106,7 +119,45 @@ for i in lists_drop_dup:
         row2.extend(data_pd.iloc[j,1])
     rows.append(row)
     #print row
+    
+vn_pd = pd.DataFrame(rows)
+vn_pd.columns = ['verbs', 'nouns']
 
-nv_pd = pd.DataFrame(rows)
-nv_pd.iloc[:,1] = nv_pd.iloc[:,1].apply(remove_stops)
-print nv_pd
+
+
+###handle nouns: remove some meaningless words and characters
+
+def remove_stops(li):
+    res = []
+    stop_words = ['@','who', 'what', 'how', 'why', 'where', 'when']
+    for i in li:
+        if i not in stop_words:
+            res.append(i)
+    return res    
+
+vn_pd.iloc[:,1] = vn_pd.iloc[:,1].apply(remove_stops)
+
+
+
+###select a shortest verb from list of verbs, as a new column
+def select_shortest_str(li):
+    len_li = []
+    for i in li:
+        len_li.append(len(i))
+        pos = len_li.index(min(len_li))
+    return li[pos]
+print select_shortest_str(['a', 'ss'])
+    
+verb_list = vn_pd.verbs.apply(select_shortest_str)
+verb_pd = pd.DataFrame({'verb': verb_list})
+#print verb_pd
+
+vvn_pd = pd.concat([verb_pd,vn_pd],axis = 1)
+
+
+###nouns column drop duplicate
+vvn_pd.nouns = vvn_pd.nouns.apply(list_drop_dup)
+
+
+#print vvn_pd
+vvn_pd.to_csv('verb_verbs_nouns.csv',index = False)

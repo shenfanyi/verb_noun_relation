@@ -40,13 +40,17 @@ eg1.
 
 input: python recommend_API.py foul
 
-output: ['something', 'pollutants', 'river']1    (1: input verb is original type)
+output: ['something', 'pollutants', 'river']1    
+
+(1: input verb is original type)
 
 eg2.
 
 input: python recommend_API.py fouling
 
-output: ['something', 'pollutants', 'river']2    (1: input verb is transferred type)
+output: ['something', 'pollutants', 'river']2    
+
+(2: input verb is transferred type)
 
 eg3.
 
